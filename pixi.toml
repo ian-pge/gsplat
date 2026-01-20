@@ -1,0 +1,52 @@
+[project]
+name = "gsplat"
+version = "0.1.0"
+description = "Gaussian Splatting with pytorch-gpu and pixi"
+authors = ["Pixi"]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[system-requirements]
+cuda = "12"
+
+[dependencies]
+python = "3.10.*"
+pytorch-gpu = "*"
+pip = "*"
+ninja = "*"
+cmake = "*"
+numpy = "<2.0.0"
+rich = ">=12"
+typing_extensions = "*"
+cxx-compiler = "*"
+cuda-nvcc = "*"
+# Examples dependencies (Conda)
+scikit-learn = "*"
+tqdm = "*"
+opencv = "*"
+pillow = "*"
+tensorboard = "*"
+pyyaml = "*"
+matplotlib = "*"
+
+[pypi-dependencies]
+jaxtyping = "*"
+viser = "*"
+torchmetrics = { version = "*", extras = ["image"] }
+tyro = ">=0.8.8"
+tensorly = "*"
+splines = "*"
+imageio = { version = "*", extras = ["ffmpeg"] }
+# Git deps
+pycolmap = { git = "https://github.com/rmbrualla/pycolmap", rev = "cc7ea4b7301720ac29287dbe450952511b32125e" }
+nerfview = { git = "https://github.com/nerfstudio-project/nerfview", rev = "4538024fe0d15fd1a0e4d760f3695fc44ca72787" }
+fused-ssim = { git = "https://github.com/rahul-goel/fused-ssim", rev = "328dc9836f513d00c4b5bc38fe30478b4435cbb5" }
+fused-bilagrid = { git = "https://github.com/harry7557558/fused-bilagrid", rev = "90f9788e57d3545e3a033c1038bb9986549632fe" }
+# gsplat itself
+gsplat = { path = ".", editable = true }
+
+[pypi-options]
+no-build-isolation = ["gsplat", "fused-ssim", "fused-bilagrid", "nerfview", "pycolmap"]
+
+[tasks]
+test = "pytest tests"
