@@ -1,10 +1,10 @@
-pixi run python /workspace/gsplat/examples/simple_trainer_2dgs.py \
-                --data_dir /workspace/glomap2k_undistorted/ \
-                --data_factor 1 \
-                --pose_opt \
-                --app_opt \
-                --normal_loss \
-                --dist_loss \
-                --sh_degree 3 \
-                --grow_grad2d 0.00015 \
-                --result_dir results/high_res_car
+pixi run python /workspace/gsplat/examples/simple_trainer_2dgs.py \                                                                                                         2m40s160ms
+          --data_dir /workspace/glomap2k_undistorted/ \
+          --data_factor 1 \
+          --sh_degree 3 \
+          --pose_opt \
+          --app_opt \
+          --normal_loss \
+          --dist_loss \
+          --eval_steps 50000 \
+          --save_steps 50000
