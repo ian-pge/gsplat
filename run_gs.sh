@@ -7,4 +7,6 @@ pixi run python /workspace/gsplat/examples/simple_trainer_2dgs.py \             
           --normal_loss \
           --dist_loss \
           --eval_steps 50000 \
-          --save_steps 50000
+          --save_steps 50000 \
+          --grow_grad2d 0.0001 \
+          --test_every 1000
