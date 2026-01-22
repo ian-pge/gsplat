@@ -259,6 +259,27 @@ class Parser:
         self.point_indices = point_indices  # Dict[str, np.ndarray], image_name -> [M,]
         self.transform = transform  # np.ndarray, (4, 4)
 
+        # Object masks
+        mask_dir = os.path.join(data_dir, "masks")
+        if not os.path.exists(mask_dir):
+            self.mask_paths = None
+        else:
+            self.mask_paths = []
+            mask_files = _get_rel_paths(mask_dir)
+            mask_map = {f: f for f in mask_files}
+            # Fallback to check if suffix _mask is used
+            mask_map.update({f.replace("_mask", ""): f for f in mask_files})
+
+            for image_name in image_names:
+                base_name = os.path.basename(image_name)
+                # Check exact match
+                if base_name in mask_map:
+                    self.mask_paths.append(os.path.join(mask_dir, mask_map[base_name]))
+                elif os.path.splitext(base_name)[0] + ".png" in mask_map:
+                     self.mask_paths.append(os.path.join(mask_dir, mask_map[os.path.splitext(base_name)[0] + ".png"]))
+                else:
+                    self.mask_paths.append(None)
+
         # load one image to check the size. In the case of tanksandtemples dataset, the
         # intrinsics stored in COLMAP corresponds to 2x upsampled images.
         actual_image = imageio.imread(self.image_paths[0])[..., :3]
@@ -398,6 +419,25 @@ class Dataset:
             image = image[y : y + self.patch_size, x : x + self.patch_size]
             K[0, 2] -= x
             K[1, 2] -= y
+
+        if self.parser.mask_paths is not None:
+             mask_path = self.parser.mask_paths[index]
+             if mask_path is not None:
+                 object_mask = imageio.imread(mask_path)
+                 if len(object_mask.shape) == 3:
+                     object_mask = object_mask[..., 0]
+                 object_mask = object_mask > 127
+                 # resize if the image was resized
+                 if object_mask.shape[:2] != image.shape[:2]:
+                    object_mask = cv2.resize(
+                        object_mask.astype(np.uint8),
+                        (image.shape[1], image.shape[0]),
+                        interpolation=cv2.INTER_NEAREST,
+                    ).astype(bool)
+                 if mask is None:
+                     mask = object_mask
+                 else:
+                     mask = mask & object_mask
 
         data = {
             "K": torch.from_numpy(K).float(),

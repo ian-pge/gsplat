@@ -65,6 +65,21 @@ the examples (requires to install some exta dependencies via `pip install -r exa
 - [Fit a 2D image with 3D Gaussians.](https://docs.gsplat.studio/main/examples/image.html)
 - [Render a large scene in real-time.](https://docs.gsplat.studio/main/examples/large_scale.html)
 
+### Transparency Carving (Alpha Training)
+
+You can train a model to learn transparency using object masks (similar to Nerfstudio's implementation).
+This requires a dataset processed with COLMAP and a `masks` subdirectory containing object masks (filenames matching image filenames, or with `_mask` suffix).
+
+```bash
+# Using pixi (recommended)
+pixi run python examples/simple_trainer.py default \
+    --data-dir data/my_dataset \
+    --random-bkgd \
+    --result-dir results/my_experiment
+```
+
+The `--random-bkgd` flag ensures that the random background color is applied to both the rendered image and the masked regions of the ground truth image, forcing the model to carve out transparent areas.
+
 
 ## Development and Contribution
 
