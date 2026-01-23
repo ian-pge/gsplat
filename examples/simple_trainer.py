@@ -26,7 +26,7 @@ from gsplat.compression import PngCompression
 from gsplat.distributed import cli
 from gsplat.optimizers import SelectiveAdam
 from gsplat.rendering import rasterization
-from gsplat.strategy import DefaultStrategy, MCMCStrategy, PerformanceStrategy
+from gsplat.strategy import DefaultStrategy, MCMCStrategy
 from gsplat_viewer import GsplatRenderTabState, GsplatViewer
 from nerfview import CameraState, RenderTabState, apply_float_colormap
 from torch import Tensor
@@ -77,7 +77,7 @@ class Config:
     steps_scaler: float = 1.0
 
     # Number of training steps
-    max_steps: int = 30_000
+    max_steps: int = 60_000
     # Steps to evaluate the model
     eval_steps: List[int] = field(default_factory=lambda: [100000])
     # Steps to save the model
@@ -112,7 +112,7 @@ class Config:
     far_plane: float = 1e10
 
     # Strategy for GS densification
-    strategy: Union[DefaultStrategy, MCMCStrategy, PerformanceStrategy] = field(
+    strategy: Union[DefaultStrategy, MCMCStrategy] = field(
         default_factory=DefaultStrategy
     )
     # Use packed mode for rasterization, this leads to less memory usage but slightly slower.
