@@ -25,7 +25,7 @@ class PerformanceStrategy(DefaultStrategy):
     """
 
     prune_opa: float = 0.001
-    grow_grad2d: float = 0.00015
+    grow_grad2d: float = 0.0008  # Higher threshold for absgrad=True (doc recommends 0.0008)
     grow_scale3d: float = 0.01
     grow_scale2d: float = 0.05
     prune_scale3d: float = 0.1
