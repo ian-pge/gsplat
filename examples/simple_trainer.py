@@ -113,16 +113,7 @@ class Config:
 
     # Strategy for GS densification
     strategy: Union[DefaultStrategy, MCMCStrategy] = field(
-        default_factory=lambda: DefaultStrategy(
-            # Check for densification more often (default is 100)
-            refine_every=50,
-            # Continue densifying for longer (default is 15000)
-            refine_stop_iter=40000,
-            # Lower threshold = creates more points (default is usually 0.0002)
-            grow_grad_thresh=0.00015,
-            # Keep transparent details (smoke/glass) by lowering this (default 0.005)
-            prune_opa_thresh=0.001
-        )
+        default_factory=DefaultStrategy
     )
     # Use packed mode for rasterization, this leads to less memory usage but slightly slower.
     packed: bool = False
