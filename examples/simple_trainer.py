@@ -143,7 +143,7 @@ class Config:
     # Opacity regularization
     opacity_reg: float = 0.01
     # Scale regularization
-    scale_reg: float = 0.01
+    scale_reg: float = 0.02
 
     # Enable camera optimization.
     pose_opt: bool = True
