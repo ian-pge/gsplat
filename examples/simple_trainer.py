@@ -77,7 +77,7 @@ class Config:
     steps_scaler: float = 1.0
 
     # Number of training steps
-    max_steps: int = 60_000
+    max_steps: int = 30_000
     # Steps to evaluate the model
     eval_steps: List[int] = field(default_factory=lambda: [100000])
     # Steps to save the model
@@ -88,6 +88,11 @@ class Config:
     ply_steps: List[int] = field(default_factory=lambda: [7_000, 30_000, 60_000])
     # Whether to disable video generation during training and evaluation
     disable_video: bool = False
+
+    # Add these two new fields to Config to control resolution scaling
+    # This matches Nerfstudio's default schedule
+    resolution_schedule: int = 3000
+    num_downscales: int = 2
 
     # Initialization strategy
     init_type: str = "sfm"
@@ -141,9 +146,9 @@ class Config:
     shN_lr: float = 2.5e-3 / 20
 
     # Opacity regularization
-    opacity_reg: float = 0.01
+    opacity_reg: float = 0.00
     # Scale regularization
-    scale_reg: float = 0.02
+    scale_reg: float = 0.00
 
     # Enable camera optimization.
     pose_opt: bool = True
@@ -613,14 +618,62 @@ class Runner:
                 trainloader_iter = iter(trainloader)
                 data = next(trainloader_iter)
 
-            camtoworlds = camtoworlds_gt = data["camtoworld"].to(device)  # [1, 4, 4]
-            Ks = data["K"].to(device)  # [1, 3, 3]
-            pixels = data["image"].to(device) / 255.0  # [1, H, W, 3]
+            camtoworlds = camtoworlds_gt = data["camtoworld"].to(device)
+            Ks = data["K"].to(device)
+            pixels = data["image"].to(device) / 255.0
+
+            # ==========================================================
+            # [NEW] Resolution Schedule for Splatfacto-Big
+            # ==========================================================
+            # Schedule:
+            # 0 - 3000 steps: 1/4 resolution (factor 4)
+            # 3000 - 6000 steps: 1/2 resolution (factor 2)
+            # 6000+ steps: Full resolution (factor 1)
+
+            downscale_factor = 1
+            # Check if we are inside the warmup period
+            if self.cfg.num_downscales > 0:
+                # resolution_schedule is 3000 in your config
+                # num_downscales is 2 in your config
+                scale_step = max(
+                    self.cfg.num_downscales - step // self.cfg.resolution_schedule, 0
+                )
+                downscale_factor = 2**scale_step
+
+            if downscale_factor > 1:
+                # Downscale Images (Area interpolation for better quality)
+                pixels = pixels.permute(0, 3, 1, 2)  # [N, C, H, W]
+                pixels = F.interpolate(
+                    pixels, scale_factor=1 / downscale_factor, mode="area"
+                )
+                pixels = pixels.permute(0, 2, 3, 1)  # [N, H, W, C]
+
+                # Downscale Intrinsics (focal length and principal point)
+                Ks = Ks.clone()
+                Ks[:, :2, :] /= downscale_factor
+
+                # Downscale Height/Width variables
+                height = pixels.shape[1]
+                width = pixels.shape[2]
+
+                # Downscale Masks if present (Nearest neighbor to keep bool)
+                masks = data["mask"].to(device) if "mask" in data else None
+                if masks is not None:
+                    masks = masks.unsqueeze(1).float()
+                    masks = F.interpolate(
+                        masks, scale_factor=1 / downscale_factor, mode="nearest"
+                    )
+                    masks = masks.squeeze(1).bool()
+            else:
+                # Standard full resolution mask loading
+                masks = data["mask"].to(device) if "mask" in data else None
+            # ==========================================================
+
             num_train_rays_per_step = (
                 pixels.shape[0] * pixels.shape[1] * pixels.shape[2]
             )
             image_ids = data["image_id"].to(device)
-            masks = data["mask"].to(device) if "mask" in data else None  # [1, H, W]
+
             if cfg.depth_loss:
                 points = data["points"].to(device)  # [1, M, 2]
                 depths_gt = data["depths"].to(device)  # [1, M]
