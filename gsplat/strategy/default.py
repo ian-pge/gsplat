@@ -82,7 +82,7 @@ class DefaultStrategy(Strategy):
     grow_scale2d: float = 0.05
     prune_scale3d: float = 0.5
     prune_scale2d: float = 0.15
-    refine_scale2d_stop_iter: int = 0
+    refine_scale2d_stop_iter: int = 4000
     refine_start_iter: int = 500
     refine_stop_iter: int = 25_000
     reset_every: int = 3000
