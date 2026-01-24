@@ -77,18 +77,18 @@ class DefaultStrategy(Strategy):
     """
 
     prune_opa: float = 0.005
-    grow_grad2d: float = 0.0002
+    grow_grad2d: float = 0.0005
     grow_scale3d: float = 0.01
     grow_scale2d: float = 0.05
-    prune_scale3d: float = 0.1
+    prune_scale3d: float = 0.5
     prune_scale2d: float = 0.15
     refine_scale2d_stop_iter: int = 0
     refine_start_iter: int = 500
-    refine_stop_iter: int = 15_000
+    refine_stop_iter: int = 25_000
     reset_every: int = 3000
     refine_every: int = 100
     pause_refine_after_reset: int = 0
-    absgrad: bool = False
+    absgrad: bool = True
     revised_opacity: bool = False
     verbose: bool = False
     key_for_gradient: Literal["means2d", "gradient_2dgs"] = "means2d"
@@ -144,9 +144,9 @@ class DefaultStrategy(Strategy):
         info: Dict[str, Any],
     ):
         """Callback function to be executed before the `loss.backward()` call."""
-        assert (
-            self.key_for_gradient in info
-        ), "The 2D means of the Gaussians is required but missing."
+        assert self.key_for_gradient in info, (
+            "The 2D means of the Gaussians is required but missing."
+        )
         info[self.key_for_gradient].retain_grad()
 
     def step_post_backward(
