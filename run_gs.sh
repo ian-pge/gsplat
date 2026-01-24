@@ -13,12 +13,5 @@ pixi run python /workspace/gsplat/examples/simple_trainer_2dgs.py \             
 
 
 pixi run python examples/simple_trainer.py default \
-        --data-dir /workspace/glomap2k_undistorted \
-        --random-bkgd \
-        --strategy.absgrad \
-        --strategy.grow_grad2d 0.0004 \
-        --strategy.refine_stop_iter 50000 \
-        --strategy.refine_every 50 \
-        --strategy.revised-opacity \
-        --max_steps 60000 \
-        --result-dir /workspace/gsplat/results/
+        --data-dir /workspace/undistorted \
+        --result-dir /workspace/results/
