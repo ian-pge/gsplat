@@ -146,9 +146,9 @@ class Config:
     shN_lr: float = 2.5e-3 / 20
 
     # Opacity regularization
-    opacity_reg: float = 0.00
+    opacity_reg: float = 0.01
     # Scale regularization
-    scale_reg: float = 0.00
+    scale_reg: float = 0.01
 
     # Enable camera optimization.
     pose_opt: bool = True
@@ -601,6 +601,18 @@ class Runner:
             pin_memory=True,
         )
         trainloader_iter = iter(trainloader)
+
+        print("Training Parameters:")
+        print(f"  📸 Number of training images: {len(self.trainset)}")
+        print(f"  🖼️ Input Resolution: {self.trainset[0]['image'].shape[1]}x{self.trainset[0]['image'].shape[0]}")
+        print(f"  ☁️ Number of initial Gaussians: {len(self.splats['means'])}")
+        print(f"  📏 Scene scale: {self.scene_scale:.2f}")
+        print(f"  📉 Data factor: {cfg.data_factor}")
+        print(f"  ⏬ Downscale Schedule: {cfg.num_downscales} levels, every {cfg.resolution_schedule} steps")
+        print(f"  🎯 Batch size: {cfg.batch_size}")
+        print(f"  👣 Max training steps: {cfg.max_steps}")
+        print(f"  🔍 Strategy: {type(cfg.strategy).__name__}")
+        print(f"  ⚙️ Device: {self.device}")
 
         # Training loop.
         global_tic = time.time()
