@@ -10,6 +10,47 @@ from setuptools import find_packages, setup
 __version__ = None
 exec(open("gsplat/version.py", "r").read())
 
+# PATCH: Set CUDA_HOME
+import sys
+import os
+
+print(f"DEBUG: sys.executable = {sys.executable}")
+print(f"DEBUG: CUDA_HOME initial = {os.environ.get('CUDA_HOME')}")
+
+candidate_home = os.path.dirname(os.path.dirname(sys.executable))
+nvcc_candidate = os.path.join(candidate_home, "bin", "nvcc")
+
+if os.path.exists(nvcc_candidate):
+    print(f"FORCE SETTING CUDA_HOME to {candidate_home}")
+    os.environ["CUDA_HOME"] = candidate_home
+    if "TORCH_CUDA_ARCH_LIST" not in os.environ:
+         os.environ["TORCH_CUDA_ARCH_LIST"] = "7.0;7.5;8.0;8.6;9.0+PTX"
+         print("FORCE SETTING TORCH_CUDA_ARCH_LIST")
+    
+    # Force import and monkey patch
+    try:
+        import torch.utils.cpp_extension
+        print("Force imported torch.utils.cpp_extension")
+        torch.utils.cpp_extension.CUDA_HOME = candidate_home
+        
+        def mock_find_cuda_home():
+            print(f"Mock _find_cuda_home called, returning {candidate_home}")
+            return candidate_home
+            
+        torch.utils.cpp_extension._find_cuda_home = mock_find_cuda_home
+        print("Monkey patched torch.utils.cpp_extension._find_cuda_home")
+    except Exception as e:
+        print(f"Failed to patch torch: {e}")
+else:
+    print("WARNING: nvcc not found in conda env!")
+
+sys.stdout.flush()
+
+
+
+
+
+
 URL = "https://github.com/nerfstudio-project/gsplat"
 
 BUILD_NO_CUDA = os.getenv("BUILD_NO_CUDA", "0") == "1"
