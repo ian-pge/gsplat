@@ -92,7 +92,7 @@ class Config:
     # Add these two new fields to Config to control resolution scaling
     # This matches Nerfstudio's default schedule
     resolution_schedule: int = 3000
-    num_downscales: int = 2
+    num_downscales: int = 1
 
     # Initialization strategy
     init_type: str = "sfm"
@@ -604,11 +604,15 @@ class Runner:
 
         print("Training Parameters:")
         print(f"  📸 Number of training images: {len(self.trainset)}")
-        print(f"  🖼️ Input Resolution: {self.trainset[0]['image'].shape[1]}x{self.trainset[0]['image'].shape[0]}")
+        print(
+            f"  🖼️ Input Resolution: {self.trainset[0]['image'].shape[1]}x{self.trainset[0]['image'].shape[0]}"
+        )
         print(f"  ☁️ Number of initial Gaussians: {len(self.splats['means'])}")
         print(f"  📏 Scene scale: {self.scene_scale:.2f}")
         print(f"  📉 Data factor: {cfg.data_factor}")
-        print(f"  ⏬ Downscale Schedule: {cfg.num_downscales} levels, every {cfg.resolution_schedule} steps")
+        print(
+            f"  ⏬ Downscale Schedule: {cfg.num_downscales} levels, every {cfg.resolution_schedule} steps"
+        )
         print(f"  🎯 Batch size: {cfg.batch_size}")
         print(f"  👣 Max training steps: {cfg.max_steps}")
         print(f"  🔍 Strategy: {type(cfg.strategy).__name__}")
