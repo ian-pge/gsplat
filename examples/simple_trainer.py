@@ -149,9 +149,9 @@ class Config:
     shN_lr: float = 2.5e-3 / 20
 
     # Opacity regularization
-    opacity_reg: float = 0.01
+    opacity_reg: float = 0.0
     # Scale regularization
-    scale_reg: float = 0.01
+    scale_reg: float = 0.0
 
     # Enable camera optimization.
     pose_opt: bool = True
