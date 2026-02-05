@@ -16,6 +16,7 @@ pip = "*"
 ninja = "*"
 cmake = "*"
 numpy = "<2.0.0"
+plyfile = "*"
 rich = ">=12"
 typing_extensions = "*"
 cxx-compiler = "*"
@@ -31,6 +32,7 @@ matplotlib = "*"
 piexif = "*"
 
 [pypi-dependencies]
+gsconverter = { git = "https://github.com/francescofugazzi/3dgsconverter.git" }
 jaxtyping = "*"
 viser = "*"
 torchmetrics = { version = "*", extras = ["image"] }
