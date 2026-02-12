@@ -127,3 +127,5 @@ results
 !examples/benchmarks/compression/results/# pixi environments
 .pixi/*
 !.pixi/config.toml
+
+datasets/
