@@ -9,6 +9,6 @@ pixi run python /workspace/gsplat/examples/simple_trainer_2dgs.py \             
           --save_steps 50000
 
 
-pixi run python examples/simple_trainer.py default \
+pixi run python examples/simple_trainer.py mcmc \
         --data-dir /workspace/undistorted \
         --result-dir /workspace/results/
