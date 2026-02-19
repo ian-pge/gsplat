@@ -95,7 +95,7 @@ class Config:
     # Add these two new fields to Config to control resolution scaling
     # This matches Nerfstudio's default schedule
     resolution_schedule: int = 3000
-    num_downscales: int = 1
+    num_downscales: int = 0
 
     # Initialization strategy
     init_type: str = "sfm"
@@ -149,9 +149,9 @@ class Config:
     shN_lr: float = 2.5e-3 / 20
 
     # Opacity regularization
-    opacity_reg: float = 0.0
+    opacity_reg: float = 0.01
     # Scale regularization
-    scale_reg: float = 0.0
+    scale_reg: float = 0.003
 
     # Enable camera optimization.
     pose_opt: bool = True
