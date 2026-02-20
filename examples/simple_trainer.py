@@ -80,7 +80,7 @@ class Config:
     steps_scaler: float = 1.0
 
     # Number of training steps
-    max_steps: int = 30_000
+    max_steps: int = 60_000
     # Steps to evaluate the model
     eval_steps: List[int] = field(default_factory=lambda: [100000])
     # Steps to save the model
@@ -133,7 +133,7 @@ class Config:
     antialiased: bool = False
 
     # Use random background for training to discourage transparency
-    random_bkgd: bool = False
+    random_bkgd: bool = True
 
     # LR for 3D point positions
     means_lr: float = 1.6e-4
@@ -149,9 +149,9 @@ class Config:
     shN_lr: float = 2.5e-3 / 20
 
     # Opacity regularization
-    opacity_reg: float = 0.01
+    opacity_reg: float = 0.0
     # Scale regularization
-    scale_reg: float = 0.003
+    scale_reg: float = 0.0
 
     # Enable camera optimization.
     pose_opt: bool = True
