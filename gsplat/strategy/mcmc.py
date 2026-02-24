@@ -48,11 +48,11 @@ class MCMCStrategy(Strategy):
 
     """
 
-    cap_max: int = 500_000
+    cap_max: int = 100_000
     noise_lr: float = 5e5
     refine_start_iter: int = 500
-    refine_stop_iter: int = 55_000
-    noise_injection_stop_iter: int = 53_000
+    refine_stop_iter: int = 25_000
+    noise_injection_stop_iter: int = 23_000
     refine_every: int = 100
     min_opacity: float = 0.005
     verbose: bool = False

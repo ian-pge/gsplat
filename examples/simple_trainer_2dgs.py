@@ -3,8 +3,8 @@ import math
 import os
 import time
 from dataclasses import dataclass, field
-from typing import Dict, List, Literal, Optional, Tuple
 from pathlib import Path
+from typing import Dict, List, Literal, Optional, Tuple
 
 import imageio
 import nerfview
@@ -16,6 +16,8 @@ import tyro
 import viser
 from datasets.colmap import Dataset, Parser
 from datasets.traj import generate_interpolated_path
+from gsplat_viewer_2dgs import GsplatRenderTabState, GsplatViewer
+from nerfview import CameraState, RenderTabState, apply_float_colormap
 from torch import Tensor
 from torch.utils.tensorboard import SummaryWriter
 from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure
@@ -29,10 +31,9 @@ from utils import (
     rgb_to_sh,
     set_random_seed,
 )
-from gsplat_viewer_2dgs import GsplatViewer, GsplatRenderTabState
+
 from gsplat.rendering import rasterization_2dgs, rasterization_2dgs_inria_wrapper
 from gsplat.strategy import DefaultStrategy
-from nerfview import CameraState, RenderTabState, apply_float_colormap
 
 
 @dataclass
@@ -45,11 +46,11 @@ class Config:
     # Path to the Mip-NeRF 360 dataset
     data_dir: str = "data/360_v2/garden"
     # Downsample factor for the dataset
-    data_factor: int = 4
+    data_factor: int = 1
     # Directory to save results
     result_dir: str = "results/garden"
     # Every N images there is a test image
-    test_every: int = 8
+    test_every: int = 1000000
     # Random crop size for training  (experimental)
     patch_size: Optional[int] = None
     # A global scaler that applies to the scene size related parameters
@@ -124,10 +125,10 @@ class Config:
     revised_opacity: bool = False
 
     # Use random background for training to discourage transparency
-    random_bkgd: bool = False
+    random_bkgd: bool = True
 
     # Enable camera optimization.
-    pose_opt: bool = False
+    pose_opt: bool = True
     # Learning rate for camera optimization
     pose_opt_lr: float = 1e-5
     # Regularization for camera optimization as weight decay
@@ -145,19 +146,19 @@ class Config:
     app_opt_reg: float = 1e-6
 
     # Enable depth loss. (experimental)
-    depth_loss: bool = False
+    depth_loss: bool = True
     # Weight for depth loss
     depth_lambda: float = 1e-2
 
     # Enable normal consistency loss. (Currently for 2DGS only)
-    normal_loss: bool = False
+    normal_loss: bool = True
     # Weight for normal loss
     normal_lambda: float = 5e-2
     # Iteration to start normal consistency regulerization
     normal_start_iter: int = 7_000
 
     # Distortion loss. (experimental)
-    dist_loss: bool = False
+    dist_loss: bool = True
     # Weight for distortion loss
     dist_lambda: float = 1e-2
     # Iteration to start distortion loss regulerization
@@ -392,6 +393,8 @@ class Runner:
         Ks: Tensor,
         width: int,
         height: int,
+        masks: Optional[Tensor] = None,
+        viewmats: Optional[Tensor] = None,
         **kwargs,
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Dict]:
         means = self.splats["means"]  # [N, 3]
@@ -416,6 +419,9 @@ class Runner:
 
         assert self.cfg.antialiased is False, "Antialiased is not supported for 2DGS"
 
+        if viewmats is None:
+            viewmats = torch.linalg.inv(camtoworlds)  # [C, 4, 4]
+
         if self.model_type == "2dgs":
             (
                 render_colors,
@@ -431,7 +437,7 @@ class Runner:
                 scales=scales,
                 opacities=opacities,
                 colors=colors,
-                viewmats=torch.linalg.inv(camtoworlds),  # [C, 4, 4]
+                viewmats=viewmats,  # [C, 4, 4]
                 Ks=Ks,  # [C, 3, 3]
                 width=width,
                 height=height,
@@ -447,7 +453,7 @@ class Runner:
                 scales=scales,
                 opacities=opacities,
                 colors=colors,
-                viewmats=torch.linalg.inv(camtoworlds),  # [C, 4, 4]
+                viewmats=viewmats,  # [C, 4, 4]
                 Ks=Ks,  # [C, 3, 3]
                 width=width,
                 height=height,
@@ -461,6 +467,9 @@ class Runner:
             normals_from_depth = info["normals_surf"]
             render_distort = info["render_distloss"]
             render_median = render_colors[..., 3]
+
+        if masks is not None:
+            render_colors = render_colors * masks[..., None].float()
 
         return (
             render_colors,
@@ -526,6 +535,27 @@ class Runner:
             camtoworlds = camtoworlds_gt = data["camtoworld"].to(device)  # [1, 4, 4]
             Ks = data["K"].to(device)  # [1, 3, 3]
             pixels = data["image"].to(device) / 255.0  # [1, H, W, 3]
+
+            # Sync CUDA to ensure no async ops have corrupted GPU memory
+            torch.cuda.synchronize()
+
+            # Validate camtoworlds before rasterization
+            if not torch.isfinite(camtoworlds).all():
+                print(
+                    f"WARNING step {step}: camtoworlds has NaN/Inf! "
+                    f"image_id={data['image_id'].item()}, skipping step."
+                )
+                continue
+            try:
+                viewmats = torch.linalg.inv(camtoworlds)
+            except torch.linalg.LinAlgError:
+                print(
+                    f"WARNING step {step}: camtoworlds is singular! "
+                    f"image_id={data['image_id'].item()}, skipping step.\n"
+                    f"  camtoworlds=\n{camtoworlds}"
+                )
+                continue
+
             num_train_rays_per_step = (
                 pixels.shape[0] * pixels.shape[1] * pixels.shape[2]
             )
@@ -545,6 +575,9 @@ class Runner:
             # sh schedule
             sh_degree_to_use = min(step // cfg.sh_degree_interval, cfg.sh_degree)
 
+            # masks
+            masks = data["mask"].to(device) if "mask" in data else None
+
             # forward
             (
                 renders,
@@ -559,6 +592,8 @@ class Runner:
                 Ks=Ks,
                 width=width,
                 height=height,
+                masks=masks,
+                viewmats=viewmats,
                 sh_degree=sh_degree_to_use,
                 near_plane=cfg.near_plane,
                 far_plane=cfg.far_plane,
@@ -574,6 +609,12 @@ class Runner:
             if cfg.random_bkgd:
                 bkgd = torch.rand(1, 3, device=device)
                 colors = colors + bkgd * (1.0 - alphas)
+                if masks is not None:
+                    pixel_mask = masks.unsqueeze(-1).float()
+                    pixels = pixels * pixel_mask + bkgd * (1.0 - pixel_mask)
+            elif masks is not None:
+                pixel_mask = masks[..., None].float()
+                pixels = pixels * pixel_mask
 
             self.strategy.step_pre_backward(
                 params=self.splats,
@@ -582,10 +623,6 @@ class Runner:
                 step=step,
                 info=info,
             )
-            masks = data["mask"].to(device) if "mask" in data else None
-            if masks is not None:
-                pixels = pixels * masks[..., None]
-                colors = colors * masks[..., None]
 
             # loss
             l1loss = F.l1_loss(colors, pixels)
@@ -638,7 +675,14 @@ class Runner:
 
             loss.backward()
 
-            desc = f"loss={loss.item():.3f}| " f"sh degree={sh_degree_to_use}| "
+            # Clip gradients to prevent NaN from mask-boundary SSIM gradients
+            if masks is not None:
+                for key in self.splats.keys():
+                    if self.splats[key].grad is not None:
+                        self.splats[key].grad.nan_to_num_(
+                            nan=0.0, posinf=0.0, neginf=0.0
+                        )
+            desc = f"loss={loss.item():.3f}| sh degree={sh_degree_to_use}| "
             if cfg.depth_loss:
                 desc += f"depth loss={depthloss.item():.6f}| "
             if cfg.dist_loss:
@@ -763,6 +807,7 @@ class Runner:
             camtoworlds = data["camtoworld"].to(device)
             Ks = data["K"].to(device)
             pixels = data["image"].to(device) / 255.0
+            masks = data["mask"].to(device) if "mask" in data else None
             height, width = pixels.shape[1:3]
 
             torch.cuda.synchronize()
@@ -780,6 +825,7 @@ class Runner:
                 Ks=Ks,
                 width=width,
                 height=height,
+                masks=masks,
                 sh_degree=cfg.sh_degree,
                 near_plane=cfg.near_plane,
                 far_plane=cfg.far_plane,
@@ -949,28 +995,41 @@ class Runner:
         c2w = torch.from_numpy(c2w).float().to(self.device)
         K = torch.from_numpy(K).float().to(self.device)
 
-        (
-            render_colors,
-            render_alphas,
-            render_normals,
-            normals_from_depth,
-            render_distort,
-            render_median,
-            info,
-        ) = self.rasterize_splats(
-            camtoworlds=c2w[None],
-            Ks=K[None],
-            width=width,
-            height=height,
-            sh_degree=min(render_tab_state.max_sh_degree, self.cfg.sh_degree),
-            near_plane=render_tab_state.near_plane,
-            far_plane=render_tab_state.far_plane,
-            radius_clip=render_tab_state.radius_clip,
-            eps2d=render_tab_state.eps2d,
-            render_mode="RGB+ED",
-            backgrounds=torch.tensor([render_tab_state.backgrounds], device=self.device)
-            / 255.0,
-        )  # [1, H, W, 3]
+        # Guard against singular/invalid viewer camera matrices
+        try:
+            torch.linalg.inv(c2w)
+        except torch.linalg.LinAlgError:
+            return np.zeros((height, width, 3), dtype=np.uint8)
+
+        try:
+            (
+                render_colors,
+                render_alphas,
+                render_normals,
+                normals_from_depth,
+                render_distort,
+                render_median,
+                info,
+            ) = self.rasterize_splats(
+                camtoworlds=c2w[None],
+                Ks=K[None],
+                width=width,
+                height=height,
+                sh_degree=min(render_tab_state.max_sh_degree, self.cfg.sh_degree),
+                near_plane=render_tab_state.near_plane,
+                far_plane=render_tab_state.far_plane,
+                radius_clip=render_tab_state.radius_clip,
+                eps2d=render_tab_state.eps2d,
+                render_mode="RGB+ED",
+                backgrounds=torch.tensor(
+                    [render_tab_state.backgrounds], device=self.device
+                )
+                / 255.0,
+            )  # [1, H, W, 3]
+        except Exception as e:
+            print(f"Viewer render failed: {e}")
+            return np.zeros((height, width, 3), dtype=np.uint8)
+
         render_tab_state.total_gs_count = len(self.splats["means"])
         render_tab_state.rendered_gs_count = (info["radii"] > 0).all(-1).sum().item()
 
