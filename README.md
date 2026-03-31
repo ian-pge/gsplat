@@ -13,7 +13,7 @@ gsplat is an open-source library for CUDA accelerated rasterization of gaussians
 
 ## News
 
-[Jan 2026] [PPIPS](https://research.nvidia.com/labs/sil/projects/ppisp/) is integreated as an alternative way of bilateral grid to compensate the training views.
+[Jan 2026] [PPISP](https://research.nvidia.com/labs/sil/projects/ppisp/) is integrated as an alternative way of bilateral grid to compensate the training views.
 
 [May 2025] Arbitrary batching (over multiple scenes and multiple viewpoints) is supported now!! Checkout [here](docs/batch.md) for more details! Kudos to [Junchen Liu](https://junchenliu77.github.io/).
 
@@ -61,7 +61,7 @@ bash benchmarks/basic.sh
 ## Examples
 
 We provide a set of examples to get you started! Below you can find the details about
-the examples (requires to install some exta dependencies via `pip install -r examples/requirements.txt`)
+the examples (requires installing some extra dependencies via `pip install -r examples/requirements.txt`)
 
 - [Train a 3D Gaussian splatting model on a COLMAP capture.](https://docs.gsplat.studio/main/examples/colmap.html)
 - [Fit a 2D image with 3D Gaussians.](https://docs.gsplat.studio/main/examples/image.html)
@@ -87,17 +87,18 @@ The `--random-bkgd` flag ensures that the random background color is applied to 
 
 This repository was born from the curiosity of people on the Nerfstudio team trying to understand a new rendering technique. We welcome contributions of any kind and are open to feedback, bug-reports, and improvements to help expand the capabilities of this software.
 
-This project is developed by the following wonderful contributors (unordered):
+This project is developed by the contributors coming from following institutes (unordered):
 
-- [Angjoo Kanazawa](https://people.eecs.berkeley.edu/~kanazawa/) (UC Berkeley): Mentor of the project.
-- [Matthew Tancik](https://www.matthewtancik.com/about-me) (Luma AI): Mentor of the project.
-- [Vickie Ye](https://people.eecs.berkeley.edu/~vye/) (UC Berkeley): Project lead. v0.1 lead.
-- [Matias Turkulainen](https://maturk.github.io/) (Aalto University): Core developer.
-- [Ruilong Li](https://www.liruilong.cn/) (UC Berkeley): Core developer. v1.0 lead.
-- [Justin Kerr](https://kerrj.github.io/) (UC Berkeley): Core developer.
-- [Brent Yi](https://github.com/brentyi) (UC Berkeley): Core developer.
-- [Zhuoyang Pan](https://panzhy.com/) (ShanghaiTech University): Core developer.
-- [Jianbo Ye](http://www.jianboye.org/) (Amazon): Core developer.
+- UC Berkeley
+- NVIDIA
+- ShanghaiTech University
+- Amazon
+- Meta
+- IIIT
+- LumaAI
+- SpectacularAI
+- Aalto University
+- CMU
 
 We also have a white paper with about the project with benchmarking and mathematical supplement with conventions and derivations, available [here](https://arxiv.org/abs/2409.06765). If you find this library useful in your projects or papers, please consider citing:
 
